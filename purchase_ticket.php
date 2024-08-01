@@ -12,6 +12,12 @@ $conn = new mysqli($servername, $username, $password, $dbname);
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
+session_start();
+
+// 사용자 로그인 상태 확인
+$is_logged_in = isset($_SESSION['user_id']);
+$user_name = $is_logged_in ? $_SESSION['user_name'] : '';
+$user_id = $is_logged_in ? $_SESSION['user_id'] : null;
 
 // performance_id 값 가져오기
 $performance_id = $_GET['performance_id'];
@@ -21,7 +27,6 @@ $sql = "SELECT * FROM performance_information WHERE performance_id = $performanc
 $result = $conn->query($sql);
 
 // event_name 초기화
-
 $event_name = '';
 $event_date = '';
 $event_photo = '';
@@ -36,7 +41,6 @@ if ($result->num_rows > 0) {
     $event_photo = $row['event_photo'];
     $event_cost = $row['event_cost'];
     $event_description = $row['event_description'];
-    
 } else {
     $event_name = 'Event not found';
 }
@@ -54,6 +58,19 @@ while ($row = $result_seat->fetch_assoc()) {
     $assigned_seats[] = $row['seat_number'];
 }
 $stmt_seat->close();
+
+// 특정 user_id가 특정 performance_id에서 예약한 좌석 수를 확인하는 쿼리
+$sql_user_seat_count = "SELECT COUNT(*) as seat_count FROM ticket_information WHERE user_id = ? AND performance_id = ?";
+$stmt_user_seat_count = $conn->prepare($sql_user_seat_count);
+$stmt_user_seat_count->bind_param("ii", $user_id, $performance_id);
+$stmt_user_seat_count->execute();
+$result_user_seat_count = $stmt_user_seat_count->get_result();
+$user_seat_count = 0;
+if ($result_user_seat_count->num_rows > 0) {
+    $row = $result_user_seat_count->fetch_assoc();
+    $user_seat_count = $row['seat_count'];
+}
+$stmt_user_seat_count->close();
 
 // 사용 가능한 좌석 번호를 배열에 저장 (1부터 100까지)
 $available_seats = array_diff(range(1, 100), $assigned_seats);
@@ -97,7 +114,6 @@ $conn->close();
         .seat-grid .seat.selected {
             background-color: #0f0;
         }
-        
         .screen {
             grid-column: span 10;
             text-align: center;
@@ -118,21 +134,21 @@ $conn->close();
             margin-bottom: 10px;
         }
         .selected-seats ul {
-    display: flex;
-    flex-direction: row; /* 수평으로 나열 */
-    flex-wrap: wrap; /* 필요한 경우 자동으로 줄바꿈 */
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-.selected-seats li {
-    background-color: #f0f0f0; /* 항목 배경색 */
-    border: 1px solid #ccc; /* 항목 테두리 */
-    border-radius: 3px; /* 둥근 모서리 */
-    padding: 5px 10px; /* 여백 */
-    margin-right: 10px; /* 항목 사이에 여백 */
-    display: inline-block; /* 인라인 블록으로 표시 */
-}
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .selected-seats li {
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            padding: 5px 10px;
+            margin-right: 10px;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
@@ -143,31 +159,32 @@ $conn->close();
             <ul id="selected-seats-list"></ul>
         </div>
         <form id="reservation-form" method="post" action="reserve_ticket.php">
-            <input type="hidden" name="performance_id" value="<?php echo htmlspecialchars($performance_id); ?>">
-            <div class="seat-grid">
-                <div class="screen">STAGE</div>
-                <?php for ($seat = 1; $seat <= 100; $seat++): ?>
-                    <label>
-                        <input type="checkbox" name="seat_number[]" value="<?php echo htmlspecialchars($seat); ?>"
-                            <?php if (in_array($seat, $assigned_seats)) echo 'checked disabled'; ?>>
-                        <div class="seat <?php if (in_array($seat, $assigned_seats)) echo 'checked'; ?>" data-seat="<?php echo htmlspecialchars($seat); ?>">
-                            <?php echo htmlspecialchars($seat); ?>
-                        </div>
-                    </label>
-                <?php endfor; ?>
-            </div>
-            <br><br>
-            <input type="submit" value="좌석 예매">
-        </form>
-        <div id="error-message" class="error-message"></div>
+    <input type="hidden" name="performance_id" value="<?php echo htmlspecialchars($performance_id); ?>">
+    <input type="hidden" id="selected-seats-hidden" name="selected_seats" value="">
+    <div class="seat-grid">
+        <div class="screen">STAGE</div>
+        <?php for ($seat = 1; $seat <= 100; $seat++): ?>
+            <label>
+                <input type="checkbox" name="seat_number[]" value="<?php echo htmlspecialchars($seat); ?>"
+                    <?php if (in_array($seat, $assigned_seats) || $user_seat_count >= 2) echo 'checked disabled'; ?>>
+                <div class="seat <?php if (in_array($seat, $assigned_seats)) echo 'checked'; ?>" data-seat="<?php echo htmlspecialchars($seat); ?>">
+                    <?php echo htmlspecialchars($seat); ?>
+                </div>
+            </label>
+        <?php endfor; ?>
     </div>
+    <br><br>
+    <input type="submit" value="좌석 예매">
+</form>
+<div id="error-message" class="error-message"></div>
 
-    <script>
+<script>
 document.addEventListener('DOMContentLoaded', function () {
     const seatElements = document.querySelectorAll('.seat-grid .seat');
     const selectedSeatsList = document.getElementById('selected-seats-list');
     const form = document.getElementById('reservation-form');
     const errorMessage = document.getElementById('error-message');
+    const selectedSeatsHidden = document.getElementById('selected-seats-hidden');
 
     function updateErrorMessage() {
         const selectedSeats = document.querySelectorAll('.seat-grid .seat.selected');
@@ -178,6 +195,12 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             errorMessage.textContent = '';
         }
+    }
+
+    function updateSelectedSeatsHidden() {
+        const selectedSeats = document.querySelectorAll('.seat-grid .seat.selected');
+        const selectedSeatsArray = Array.from(selectedSeats).map(seat => seat.getAttribute('data-seat'));
+        selectedSeatsHidden.value = selectedSeatsArray.join(',');
     }
 
     seatElements.forEach(seat => {
@@ -204,6 +227,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 selectedSeatsList.appendChild(listItem);
             }
             updateErrorMessage();
+            updateSelectedSeatsHidden();
         });
     });
 
@@ -217,6 +241,7 @@ document.addEventListener('DOMContentLoaded', function () {
             event.preventDefault(); // 폼 제출 막기
         } else {
             errorMessage.textContent = '';
+            updateSelectedSeatsHidden();
         }
     });
 });

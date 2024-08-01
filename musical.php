@@ -1,3 +1,10 @@
+<?php
+session_start();
+
+// 사용자 로그인 상태 확인
+$is_logged_in = isset($_SESSION['user_id']);
+$user_name = $is_logged_in ? $_SESSION['user_name'] : '';
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -43,8 +50,8 @@ https://www.tooplate.com/view/2125-artxibition
       </div>
     </div>
     <!-- ***** Preloader End ***** -->
-    
-    <!-- ***** Pre HEader ***** -->
+     <!-- ***** Pre HEader ***** -->
+     <?php if (!$is_logged_in): ?>
     <div class="pre-header">
         <div class="container">
             <div class="row">
@@ -53,29 +60,42 @@ https://www.tooplate.com/view/2125-artxibition
                 </div>
                 <div class="col-lg-6 col-sm-6">
                     <div class="text-button">
-                        <a href="rent-venue.html">로그인<i class="fa fa-arrow-right"></i></a>
+                        <a href="login.html">로그인<i class="fa fa-arrow-right"></i></a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- ***** Header Area Start ***** -->
+    <?php else: ?>
+    <!-- ***** Navbar ***** -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <span class="nav-link">안녕하세요, <strong><?php echo htmlspecialchars($user_name); ?>님</strong></span>
+                </li>
+                <li class="nav-item">
+                    <a class="btn btn-danger" href="logout.php">로그아웃</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <?php endif; ?>
+    <!-- ***** Navbar ***** -->
     <header class="header-area header-sticky">
         <div class="container">
             <div class="row">
                 <div class="col-12">
                     <nav class="main-nav">
                         <!-- ***** Logo Start ***** -->
-                        <a href="index.html" class="logo">Intra<em>net</em></a>
+                        <a href="index.php" class="logo">Intra<em>park</em></a>
                         <!-- ***** Logo End ***** -->
                         <!-- ***** Menu Start ***** -->
                         <ul class="nav">
                             <li><a href="musical.php" class="active">뮤지컬</a></li>
                             <li><a href="concert.php">콘서트</a></li>
                             <li><a href="sports.php">스포츠</a></li>
-                            <li><a href="shows-events.html">랭킹</a></li> 
-                            <li><a href="tickets.html">마이페이지</a></li> 
+                            <li><a href="mypage.php">마이페이지</a></li> 
                         </ul>        
                         <a class='menu-trigger'>
                             <span>Menu</span>
@@ -235,8 +255,7 @@ https://www.tooplate.com/view/2125-artxibition
         </div>
     </div>
 
-
-
+    
     <!-- *** Subscribe *** -->
     <div class="subscribe">
         <div class="container">
@@ -247,16 +266,16 @@ https://www.tooplate.com/view/2125-artxibition
                 <div class="col-lg-8">
                     <form id="subscribe" action="" method="get">
                         <div class="row">
-                          <div class="col-lg-9">
-                            <fieldset>
-                              <input name="email" type="text" id="email" pattern="[^ @]*@[^ @]*" placeholder="Your Email Address" required="">
-                            </fieldset>
-                          </div>
-                          <div class="col-lg-3">
-                            <fieldset>
-                              <button type="submit" id="form-submit" class="main-dark-button">Submit</button>
-                            </fieldset>
-                          </div>
+                            <div class="col-lg-9">
+                                <fieldset>
+                                    <input name="email" type="text" id="email" pattern="[^ @]*@[^ @]*" placeholder="Your Email Address" required="" />
+                                </fieldset>
+                            </div>
+                            <div class="col-lg-3">
+                                <fieldset>
+                                    <button type="submit" id="form-submit" class="main-dark-button">Submit</button>
+                                </fieldset>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -270,29 +289,24 @@ https://www.tooplate.com/view/2125-artxibition
             <div class="row">
                 <div class="col-lg-4">
                     <div class="address">
-                        <h4>Sunny Hill Festival Address</h4>
-                        <span>5 College St NW, <br>Norcross, GA 30071<br>United States</span>
+                        <h4>인트라파크(주) 주소</h4>
+                        <span>충청북도 청주시 <br />서원구 개신동<br />충대로1</span>
                     </div>
                 </div>
                 <div class="col-lg-4">
                     <div class="links">
-                        <h4>Useful Links</h4>
-                        <ul>
-                            <li><a href="#">Info</a></li>
-                            <li><a href="#">Venues</a></li>
-                            <li><a href="#">Guides</a></li>
-                            <li><a href="#">Videos</a></li>
-                            <li><a href="#">Outreach</a></li>
-                        </ul>
+                        <h4>공지</h4>
+                            <li>이 홈페이지는 NHN 클라우드 기반의 </li>
+                            <li>웹서비스 프로젝트입니다.</li>
                     </div>
                 </div>
                 <div class="col-lg-4">
                     <div class="hours">
-                        <h4>Open Hours</h4>
+                        <h4>고객센터 전화번호</h4>
                         <ul>
                             <li>Mon to Fri: 10:00 AM to 8:00 PM</li>
                             <li>Sat - Sun: 11:00 AM to 4:00 PM</li>
-                            <li>Holidays: Closed</li>
+                            <li>043-1234-5678</li>
                         </ul>
                     </div>
                 </div>
@@ -300,12 +314,12 @@ https://www.tooplate.com/view/2125-artxibition
                     <div class="under-footer">
                         <div class="row">
                             <div class="col-lg-6 col-sm-6">
-                                <p>São Conrado, Rio de Janeiro</p>
+                                <p>intrapark</p>
                             </div>
                             <div class="col-lg-6 col-sm-6">
-                                <p class="copyright">Copyright 2021 ArtXibition Company 
-                    
-                    			<br>Design: <a rel="nofollow" href="https://www.tooplate.com" target="_parent">Tooplate</a></p>
+                                <p class="copyright">
+                                    Copyright 2024 Intrapark
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -314,16 +328,17 @@ https://www.tooplate.com/view/2125-artxibition
                     <div class="sub-footer">
                         <div class="row">
                             <div class="col-lg-3">
-                                <div class="logo"><span>Art<em>Xibition</em></span></div>
+                                <div class="logo">
+                                    <span>Intra<em>park</em></span>
+                                </div>
                             </div>
                             <div class="col-lg-6">
                                 <div class="menu">
                                     <ul>
-                                        <li><a href="index.html" class="active">Home</a></li>
-                                        <li><a href="about.html">About Us</a></li>
-                                        <li><a href="rent-venue.html">Rent Venue</a></li>
-                                        <li><a href="shows-events.html">Shows & Events</a></li> 
-                                        <li><a href="tickets.html">Tickets</a></li> 
+                                        <li><a href="musical.php" class="active">뮤지컬</a></li>
+                                        <li><a href="concert.php">콘서트</a></li>
+                                        <li><a href="sports.php">스포츠</a></li>
+                                        <li><a href="mypage.php">마이페이지</a></li>
                                     </ul>
                                 </div>
                             </div>
@@ -343,7 +358,6 @@ https://www.tooplate.com/view/2125-artxibition
             </div>
         </div>
     </footer>
-
     <!-- jQuery -->
     <script src="assets/js/jquery-2.1.0.min.js"></script>
 

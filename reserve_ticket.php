@@ -23,16 +23,18 @@
         if ($conn->connect_error) {
             die("Connection failed: " . $conn->connect_error);
         }
+        
+        session_start();
 
-        if ($_SERVER["REQUEST_METHOD"] == "POST") {
+        // 사용자 로그인 상태 확인
+        $is_logged_in = isset($_SESSION['user_id']);
+        $user_name = $is_logged_in ? $_SESSION['user_name'] : '';
+        $user_id = $is_logged_in ? $_SESSION['user_id'] : null;
+
+        if ($_SERVER["REQUEST_METHOD"] == "POST" && $is_logged_in) {
             // POST 데이터 가져오기
             $performance_id = $_POST['performance_id'];
-            $selected_seats = $_POST['seat_number'];
-
-            // 선택된 좌석 개수가 2개를 초과하는 경우 처음 2개의 좌석만 사용
-            if (count($selected_seats) > 2) {
-                $selected_seats = array_slice($selected_seats, 0, 2);
-            }
+            $selected_seats = explode(',', $_POST['selected_seats']);
 
             // performance_information에서 데이터 가져오기
             $sql = "SELECT event_date, event_name, event_cost FROM performance_information WHERE performance_id = ?";
@@ -48,36 +50,62 @@
                 $event_name = $row['event_name'];
                 $event_cost = $row['event_cost'];
 
-                foreach ($selected_seats as $seat_number) {
-                    // ticket_information에 데이터 삽입
-                    $sql_insert = "INSERT INTO ticket_information (performance_id, event_date, event_name, event_cost, seat_number) VALUES (?, ?, ?, ?, ?)";
-                    $stmt_insert = $conn->prepare($sql_insert);
-                    $stmt_insert->bind_param("issdi", $performance_id, $event_date, $event_name, $event_cost, $seat_number);
+                // 사용자별 좌석 수 확인
+                $sql_check = "SELECT COUNT(*) AS seat_count FROM ticket_information WHERE performance_id = ? AND user_id = ?";
+                $stmt_check = $conn->prepare($sql_check);
+                $stmt_check->bind_param("ii", $performance_id, $user_id);
+                $stmt_check->execute();
+                $check_result = $stmt_check->get_result();
+                $check_row = $check_result->fetch_assoc();
+                $existing_seat_count = $check_row['seat_count'];
 
-                    if ($stmt_insert->execute()) {
-                        echo "<div class='congratulations'>축하합니다! 티켓 구매에 성공했습니다!!</div>";
-                        echo "<div class='details'>";
-                        echo "<p>공연 이름 : " . htmlspecialchars($event_name) . "</p>";
-                        echo "<p>공연 날짜 : " . htmlspecialchars($event_date) . "</p>";
-                        echo "<p>공연 비용 : " . htmlspecialchars($event_cost) . "</p>";
-                        echo "<p>공연 좌석 : " . htmlspecialchars($seat_number) . "</p>";
-                        echo "</div><div class='divider'></div>";
-                    } else {
-                        echo "Error: " . $stmt_insert->error;
+                if ($existing_seat_count + count($selected_seats) > 2) {
+                    echo "<div class='error'>한 계정당 좌석 2개만 예약할 수 있습니다.</div>";
+                } else {
+                    $success = true;
+                    foreach ($selected_seats as $seat_number) {
+                        // ticket_information에 데이터 삽입
+                        $sql_insert = "INSERT INTO ticket_information (performance_id, event_date, event_name, event_cost, seat_number, user_id) VALUES (?, ?, ?, ?, ?, ?)";
+                        $stmt_insert = $conn->prepare($sql_insert);
+                        $stmt_insert->bind_param("issdii", $performance_id, $event_date, $event_name, $event_cost, $seat_number, $user_id);
+
+                        if ($stmt_insert->execute()) {
+                            // 각 좌석에 대해 성공 메시지 출력
+                            echo "<div class='congratulations'>";
+                            echo "<p> 예약에 성공했습니다!</p>";
+                            echo "<p>공연 이름 : " . htmlspecialchars($event_name) . "</p>";
+                            echo "<p>좌석 번호 : " . htmlspecialchars($seat_number) . "</p>";
+                            echo "<p>공연 날짜 : " . htmlspecialchars($event_date) . "</p>";
+                            echo "<p>공연 비용 : " . htmlspecialchars($event_cost) . "</p>";
+                            echo "</div><div class='divider'></div>";
+                        } else {
+                            $success = false;
+                            echo "<div class='error'>Error: " . $stmt_insert->error . "</div>";
+                        }
+
+                        $stmt_insert->close();
                     }
 
-                    $stmt_insert->close();
+                    if ($success) {
+                        echo "<div class='details'>";
+                        echo "<p>예약한 좌석: " . htmlspecialchars(implode(', ', $selected_seats)) . "</p>";
+                        echo "</div>";
+                    }
                 }
+
+                $stmt_check->close();
             } else {
-                echo "Event not found.";
+                echo "<div class='error'>Event not found.</div>";
             }
 
             $stmt->close();
+        } elseif (!$is_logged_in) {
+            echo "<div class='error'>로그인 후 이용 가능합니다.</div>";
         }
 
         $conn->close();
         ?>
-        <a href="concert.php" class="back-button">홈으로 </a>
+        <a href="index.php" class="back-button">HOME</a>
     </div>
 </body>
 </html>

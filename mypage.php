@@ -4,55 +4,71 @@ session_start();
 // 사용자 로그인 상태 확인
 $is_logged_in = isset($_SESSION['user_id']);
 $user_name = $is_logged_in ? $_SESSION['user_name'] : '';
-?>
+$user_id = $is_logged_in ? $_SESSION['user_id'] : null;
 
+// MySQL 데이터베이스 연결 정보
+$servername = "localhost";
+$username = "root";
+$password = "tjrwls0802";
+$dbname = "ticket";
+
+// 데이터베이스 연결 생성
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// 연결 확인
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// 티켓 정보 가져오기
+$tickets = [];
+if ($is_logged_in) {
+    $sql = "SELECT event_name, seat_number, event_date, event_cost FROM ticket_information WHERE user_id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    while ($row = $result->fetch_assoc()) {
+        $tickets[] = $row;
+    }
+    $stmt->close();
+}
+
+$conn->close();
+?>
 <!DOCTYPE html>
 <html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="description" content="" />
+    <meta name="author" content="Tooplate" />
+    <link href="https://fonts.googleapis.com/css?family=Poppins:100,100i,200,200i,300,300i,400,400i,500,500i,600,600i,700,700i,800,800i,900,900i&display=swap" rel="stylesheet" />
 
-  <head>
-
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="Tooplate">
-    <link href="https://fonts.googleapis.com/css?family=Poppins:100,100i,200,200i,300,300i,400,400i,500,500i,600,600i,700,700i,800,800i,900,900i&display=swap" rel="stylesheet">
-
-    <title>ArtXibition HTML Event Template</title>
-
+    <title>인트라파크</title>
 
     <!-- Additional CSS Files -->
-    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css">
-
-    <link rel="stylesheet" type="text/css" href="assets/css/font-awesome.css">
-
-    <link rel="stylesheet" type="text/css" href="assets/css/owl-carousel.css">
-
-    <link rel="stylesheet" href="assets/css/tooplate-artxibition.css">
-<!--
-
-Tooplate 2125 ArtXibition
-
-https://www.tooplate.com/view/2125-artxibition
-
--->
-    </head>
-    
-    <body>
-    
+    <link rel="stylesheet" type="text/css" href="assets/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="assets/css/font-awesome.css" />
+    <link rel="stylesheet" type="text/css" href="assets/css/owl-carousel.css" />
+    <link rel="stylesheet" href="assets/css/tooplate-artxibition.css" />
+</head>
+<body>
     <!-- ***** Preloader Start ***** -->
     <div id="js-preloader" class="js-preloader">
-      <div class="preloader-inner">
-        <span class="dot"></span>
-        <div class="dots">
-          <span></span>
-          <span></span>
-          <span></span>
+        <div class="preloader-inner">
+            <span class="dot"></span>
+            <div class="dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
         </div>
-      </div>
     </div>
     <!-- ***** Preloader End ***** -->
+
     <!-- ***** Pre HEader ***** -->
-     <?php if (!$is_logged_in): ?>
+    <?php if (!$is_logged_in): ?>
     <div class="pre-header">
         <div class="container">
             <div class="row">
@@ -82,7 +98,7 @@ https://www.tooplate.com/view/2125-artxibition
         </div>
     </nav>
     <?php endif; ?>
-    
+
     <!-- ***** Header Area Start ***** -->
     <header class="header-area header-sticky">
         <div class="container">
@@ -97,9 +113,13 @@ https://www.tooplate.com/view/2125-artxibition
                             <li><a href="musical.php" class="active">뮤지컬</a></li>
                             <li><a href="concert.php">콘서트</a></li>
                             <li><a href="sports.php">스포츠</a></li>
-                            <li><a href="mypage.php">마이페이지</a></li> 
-                        </ul>        
-                        <a class='menu-trigger'>
+                            <li>
+                                <a href="<?php echo $is_logged_in ? 'mypage.php' : 'login.php'; ?>">
+                                     <?php echo $is_logged_in ? '마이페이지' : '로그인'; ?>
+                                  </a>
+                            </li>
+                        </ul>
+                        <a class="menu-trigger">
                             <span>Menu</span>
                         </a>
                         <!-- ***** Menu End ***** -->
@@ -110,114 +130,55 @@ https://www.tooplate.com/view/2125-artxibition
     </header>
     <!-- ***** Header Area End ***** -->
 
-  
-
-    <!-- ***** About Us Page ***** -->
-    <div class="page-heading-shows-events">
+    <!-- ***** My Page Area Start ***** -->
+    <section class="my-page">
         <div class="container">
-            <div class="row">
-                <div class="col-lg-12">
-                    <h2>Tickets On Sale Now!</h2>
-                    <span>Check out upcoming and past shows & events and grab your ticket right now.</span>
+            <!-- 프로필 헤더 -->
+            <div class="profile-header">
+                <div class="profile-picture">
+                    <img src="assets/images/default-profile.png" alt="Profile Picture">
+                </div>
+                <div class="profile-details">
+                    <h2>안녕하세요, <strong><?php echo htmlspecialchars($user_name); ?></strong>님</h2>
+                    <p><strong>아이디:</strong> <?php echo htmlspecialchars($user_id); ?></p>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <?php
-// MySQL 데이터베이스 연결 정보
-$servername = "localhost";
-$username = "root";
-$password = "tjrwls0802";
-$dbname = "ticket";
+            <!-- 구매한 티켓 목록 -->
+            <div class="ticket-info">
+                <h3>구매한 티켓</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>공연 이름</th>
+                            <th>좌석</th>
+                            <th>공연 날짜</th>
+                            <th>비용</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($tickets as $ticket): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($ticket['event_name']); ?></td>
+                                <td><?php echo htmlspecialchars($ticket['seat_number']); ?></td>
+                                <td><?php echo htmlspecialchars($ticket['event_date']); ?></td>
+                                <td><?php echo htmlspecialchars($ticket['event_cost']); ?> 원</td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
 
-// 데이터베이스 연결 생성
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// 연결 확인
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
-// performance_id 값 가져오기
-$performance_id = $_GET['performance_id'];
-
-// performance_id에 해당하는 티켓 정보 가져오기
-$sql = "SELECT * FROM performance_information WHERE performance_id = $performance_id";
-$result = $conn->query($sql);
-
-// event_name 초기화
-
-$event_name = '';
-$event_date = '';
-$event_photo = '';
-$event_cost = '';
-$event_description = '';
-
-if ($result->num_rows > 0) {
-    // 데이터가 있는 경우
-    $row = $result->fetch_assoc();
-    $event_name = $row['event_name'];
-    $event_date = $row['event_date'];
-    $event_photo = $row['event_photo'];
-    $event_cost = $row['event_cost'];
-    $event_description = $row['event_description'];
-    
-} else {
-    $event_name = 'Event not found';
-}
-
-// 데이터베이스 연결 종료
-$conn->close();
-?>
-
-
-
-
-    <div class="ticket-details-page">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-8">
-                    <div class="left-image">
-                        <img src=<?php echo htmlspecialchars($event_photo); ?> alt="">
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <div class="right-content">
-                        <h4><?php echo htmlspecialchars($event_name); ?></h4>
-                        <span>ticket information</span>
-                        <ul>
-                            <li><i class="fa fa-clock-o"></i> 24-07-18 Thursday 18:00 to 22:00</li>
-                            <li><i class="fa fa-map-marker"></i> E9 308, CBNU</li>
-                        </ul>
-                        <div class="quantity-content">
-                            <div class="left-content">
-                                <h6>Standard Ticket</h6>
-                                <p>$<?php echo htmlspecialchars($event_cost); ?>per ticket</p>
-                            </div>
-                            <div class="right-content">
-                                <div class="quantity buttons_added">
-                                    <input type="button" value="-" class="minus"><input type="number" step="1" min="1" max="2" name="quantity" value="1" title="Qty" class="input-text qty text" size="4" pattern="" inputmode=""><input type="button" value="+" class="plus">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="total">
-                        <h4 id="total-price">Total: $<?php echo htmlspecialchars($event_cost); ?></h4>
-
-    <div class="main-dark-button">
-        <a href="purchase_ticket.php?performance_id=<?php echo htmlspecialchars($performance_id); ?>">Purchase Tickets</a>
-    </div>
-</div>
-<div class="warn">
-    <!-- 경고 메시지나 추가 정보가 필요할 경우 여기에 추가하세요. -->
-</div>
-                    </div>
-                </div>
+            <!-- 프로필 액션 버튼들 -->
+            <div class="profile-actions">
+                <a href="edit-profile.php" class="btn btn-primary">프로필 수정</a>
+                <a href="change-password.php" class="btn btn-secondary">비밀번호 변경</a>
+                <!-- 추가적인 링크들 -->
             </div>
         </div>
-    </div>
+    </section>
+    <!-- ***** My Page Area End ***** -->
 
-    
     <!-- *** Subscribe *** -->
     <div class="subscribe">
         <div class="container">
@@ -297,10 +258,10 @@ $conn->close();
                             <div class="col-lg-6">
                                 <div class="menu">
                                     <ul>
-                                        <li><a href="musical.php" class="active">뮤지컬</a></li>
-                                        <li><a href="concert.php">콘서트</a></li>
-                                        <li><a href="sports.php">스포츠</a></li>
-                                        <li><a href="mypage.php">마이페이지</a></li>
+                                        <li><a href="musical.html" class="active">뮤지컬</a></li>
+                                        <li><a href="concert.html">콘서트</a></li>
+                                        <li><a href="sports.html">스포츠</a></li>
+                                        <li><a href="shows-events.html">마이페이지</a></li>
                                     </ul>
                                 </div>
                             </div>
@@ -323,58 +284,18 @@ $conn->close();
 
     <!-- jQuery -->
     <script src="assets/js/jquery-2.1.0.min.js"></script>
-
     <!-- Bootstrap -->
     <script src="assets/js/popper.js"></script>
     <script src="assets/js/bootstrap.min.js"></script>
-
     <!-- Plugins -->
     <script src="assets/js/scrollreveal.min.js"></script>
     <script src="assets/js/waypoints.min.js"></script>
     <script src="assets/js/jquery.counterup.min.js"></script>
-    <script src="assets/js/imgfix.min.js"></script> 
-    <script src="assets/js/mixitup.js"></script> 
+    <script src="assets/js/imgfix.min.js"></script>
+    <script src="assets/js/mixitup.js"></script>
     <script src="assets/js/accordions.js"></script>
     <script src="assets/js/owl-carousel.js"></script>
-    <script src="assets/js/quantity.js"></script>
-    
     <!-- Global Init -->
     <script src="assets/js/custom.js"></script>
-    <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // 요소 참조
-    const quantityInput = document.querySelector('input[name="quantity"]');
-    const totalPriceElement = document.getElementById('total-price');
-    const unitPrice = parseFloat("<?php echo htmlspecialchars($event_cost); ?>");
-
-    // 수량 변경 시 총 가격 업데이트
-    function updateTotalPrice() {
-        const quantity = parseInt(quantityInput.value, 10);
-        const totalPrice = unitPrice * quantity;
-        totalPriceElement.textContent = `Total: $${totalPrice.toFixed(2)}`;
-    }
-
-    // 수량 입력 필드에 이벤트 리스너 추가
-    quantityInput.addEventListener('input', updateTotalPrice);
-
-    // 수량 증가 버튼 클릭 시 이벤트 처리
-    document.querySelector('.plus').addEventListener('click', function() {
-        quantityInput.stepUp();
-        updateTotalPrice();
-    });
-
-    // 수량 감소 버튼 클릭 시 이벤트 처리
-    document.querySelector('.minus').addEventListener('click', function() {
-        quantityInput.stepDown();
-        updateTotalPrice();
-    });
-
-    // 초기 로드 시 총 가격 설정
-    updateTotalPrice();
-});
-</script>
-
-
-  </body>
-
+</body>
 </html>
